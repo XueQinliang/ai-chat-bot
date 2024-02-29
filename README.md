@@ -13,6 +13,7 @@ pip 21.9.4<br>
 if the environment is prepared, you must:<br>
 ```
 cd frontend
+npm install
 npm run build
 cd ..
 cd backend

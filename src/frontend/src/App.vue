@@ -11,6 +11,7 @@
           </div>
         </div>
       </div>
+      <TestPage />
     </el-aside>
     <el-main style="margin:0px; padding: 0px;">
       <el-header class="header">{{user}}</el-header>
@@ -18,15 +19,15 @@
         <div v-for="item in list" :key="item.id" :class="{'left_parent':item.role=='system', 'right_parent':item.role=='user'}">
           <div :class="{'text_dialog':true, 'white':item.role=='system', 'green':item.role=='user'}"
                v-loading="loading && item.id==list.length-1 && item.role=='system'">
-            <p class="text" v-show="item.id<list.length-1 || item.role=='user'">{{item.text}}</p>
-            <p class="text" v-show="item.id==list.length-1 && item.role=='system'">{{answer}}</p>
+            <p class="text" style="white-space: pre-wrap;" v-show="item.id<list.length-1 || item.role=='user'">{{item.text}}</p>
+            <p class="text" style="white-space: pre-wrap;" v-show="item.id==list.length-1 && item.role=='system'">{{answer}}</p>
           </div>
         </div>
-        <el-dialog v-model="centerDialogVisible" title="你是不是想问这些问题？" width="30%" center>
+        <el-dialog v-model="centerDialogVisible" title="你是不是想问这些问题？" width="80%" center>
           <div class="msgdialog" v-loading="dialog_loading">
             <div v-for="item in question_list" :key="item" :class="{'left_parent':true}">
               <div :class="{'text_dialog':true, 'green':true}" @click="closedialog(item)">
-                <p class="text" style="margin-top: 0px; margin-bottom: 0px;">{{item}}</p>
+                <p class="text" style="white-space: pre-wrap; margin-top: 0px; margin-bottom: 0px;">{{item}}</p>
               </div>
             </div>
           </div>
@@ -40,7 +41,7 @@
           </template>
         </el-dialog>
       </div>
-      <el-button @click="send()" class="button" :disabled="loading">发送提问</el-button>
+      <el-button @click="send()" class="button" :disabled="disable">发送提问</el-button>
       <el-button @click="showdialog()" class="button">猜你想问</el-button>
       <div style="margin: 10px;">
         <el-input
@@ -60,7 +61,7 @@
   margin: 5px;
 }
 .aside {
-  width: 200px;
+  width: 30%;
   overflow-y: scroll; /* 显示垂直滚动条 */
   border: 1px solid #e4e4e4; /* 添加边框 */
   background-color: #fbfbfb; /* 添加底色 */
@@ -81,7 +82,7 @@
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
   padding: 10px;
   margin: 2px;
-  width: 150px;
+  width: 85%;
 }
 .container {
   height: 430px; /* 设置容器高度 */
@@ -140,9 +141,11 @@
 // import {inject} from 'vue'
 // const global = inject('global')
 import axios from 'axios'
+import TestPage from './components/TestPage.vue';
 import { ref } from 'vue'
 const centerDialogVisible = ref(false);
 const loading = ref(false);
+const disable = ref(false);
 const dialog_loading = ref(false);
 const question_list = ref([]);
 const user_list = ref(['心理小百科','情感小天使','答题小天才']);
@@ -162,13 +165,17 @@ function closedialog(item) {
   centerDialogVisible.value = false;
 }
 function chooseuser(clickuser) {
-  user.value = clickuser;
-  answer.value = '亲，我是你的'+user.value+','+init_answer.value;
-  list.value = [{
-    'id':0,
-    'role':'system',
-    'text': answer.value
-  }];
+  if (disable.value == false) {
+    user.value = clickuser;
+    answer.value = '亲，我是你的'+user.value+','+init_answer.value;
+    list.value = [{
+      'id':0,
+      'role':'system',
+      'text': answer.value
+    }];
+  } else {
+    alert("亲，请耐心等我说完吧！");
+  }
 }
 function showdialog() {
   centerDialogVisible.value = true;
@@ -180,16 +187,28 @@ function showdialog() {
       url: "/api/get_more_question", //接口
     }).then((res) => {
       var str = res.data;
-      str=str.slice(1,-1)
-      var list=str.split(',');
-      var newlist = [];
-      for(let i = 0; i < list.length; i++) {
-        newlist.push(list[i].trim().slice(1, -1));
+      console.log(str);
+      try {
+        if (typeof(str) == "string") {
+          str=str.slice(1,-1)
+          var list=str.split(',');
+          var newlist = [];
+          for(let i = 0; i < list.length; i++) {
+            newlist.push(list[i].trim().slice(1, -1));
+          }
+          question_list.value = newlist;
+        } else if (typeof(str) == "object") {
+          question_list.value = str;
+        } else {
+          alert("发生了一些未知错误，请重试");
+        }
+      } catch (e) {
+        alert("发生了一些未知错误，请重试");
       }
-      question_list.value = newlist;
       dialog_loading.value = false;
     })
 }
+
 function send() {
   if (question.value.length > 0) {
     list.value.push({'id':list.value.length, 'role':'user', 'text':question.value});
@@ -197,15 +216,16 @@ function send() {
     question.value = '';
     answer.value = '努力思考中...';
     loading.value = true;
+    disable.value = true;
     axios({
       method: "post", //接口方法
       data: {'question': list.value, 'system': user.value},
       url: "/api/get_reply", //接口
     }).then((res) => {
-      loading.value = false;
       list.value.pop();
       list.value.push({'id':list.value.length, 'role':'system', 'text':res.data});
       answer.value = '';
+      loading.value = false;
       print(answer, res.data);
     });
   }
@@ -214,35 +234,14 @@ function send() {
 function print(answer, data) {
   console.log(answer.value.length, data.length);
   if (answer.value.length >= data.length) {
+    disable.value = false;
     return;
   } else {
     setTimeout(()=>{
       answer.value += data.charAt(answer.value.length);
       print(answer, data);
-    }, 70);
+    }, 50);
   }
 }
-// function getdata() {
-//   var url = "/api/db";
-//   url = url + "?sql=" + sql.value;
-//   axios({
-//     method: "get", //接口方法
-//     url: url, //接口
-//   }).then((res) => {
-//     alert("get data success");
-//     text.value = res.data;
-//   });
-// }
-
-// function postdata() {
-//   axios({
-//     method: "post", //接口方法
-//     url: "/api/db", //接口
-//     data: {'sql': sql.value}
-//   }).then((res) => {
-//     alert("post data success");
-//     text.value = res.data;
-//   });
-// }
 </script>
  

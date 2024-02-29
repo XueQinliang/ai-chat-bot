@@ -13,7 +13,7 @@ os.environ["https_proxy"] = "http://localhost:7890"
 
 app = Flask(__name__)
 CORS(app)
-client = OpenAI(api_key='your openai api')
+client = OpenAI(api_key='your api key')
 @app.route('/')
 def hello_world():
     return 'Hello World'
