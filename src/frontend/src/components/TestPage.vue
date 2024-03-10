@@ -41,9 +41,28 @@ export default {
                 this.imgurl = require("@/assets/p1.png");
             }
         },
-        upload() {
-            this.$message({"message": "上传图片功能暂未开放，敬请期待！", "type": "warning"});
-        },
+      upload() {
+        // 创建一个 input 元素，用于触发文件选择对话框
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*'; // 只接受图片类型的文件
+
+        // 监听文件选择事件
+        input.addEventListener('change', event => {
+          const file = event.target.files[0];
+          if (file) {
+            // 使用 FileReader 读取文件内容并获取图片路径
+            const reader = new FileReader();
+            reader.onload = () => {
+              this.imgurl = reader.result; // 设置 imgurl 为选择的图片路径
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+
+        // 触发文件选择对话框
+        input.click();
+      },
     },
 };
 </script>
