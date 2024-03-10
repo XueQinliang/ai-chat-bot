@@ -1,4 +1,4 @@
-# AI chat bot1
+# AI chat bot
 ## 选择一个机器人开始聊天
 ![image1](./assets/image1.jpg)
 ## 不知道聊什么可以点击“猜你想问”
